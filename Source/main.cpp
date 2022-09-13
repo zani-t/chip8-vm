@@ -1,10 +1,9 @@
 #include <chrono>
 #include <iostream>
-#include "chip8.h"
-#include "platform.h"
-#include "SDL.h"
+#include "chip8.hpp"
+#include "platform.hpp"
 
-int main(int argc, char__ argv)
+int main(int argc, char** argv)
 {
     if (argc != 4)
     {
@@ -16,7 +15,7 @@ int main(int argc, char__ argv)
     int cycleDelay = std::stoi(argv[2]);
     char const* romFilename = argv[3];
 
-    Platform platform("CHIP-8 Emulator", VIDEO_WIDTH * videoScale, VIDEO_HEIGH * videoScale, VIDEO_WIDTH, VIDEO_HEIGHT);
+    Platform platform("CHIP-8 Emulator", VIDEO_WIDTH * videoScale, VIDEO_HEIGHT * videoScale, VIDEO_WIDTH, VIDEO_HEIGHT);
 
     Chip8 chip8;
     chip8.LoadROM(romFilename);
