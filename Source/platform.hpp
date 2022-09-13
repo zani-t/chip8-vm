@@ -1,15 +1,17 @@
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#pragma once
 
 #include <cstdint>
-#include "SDL.h"
 
-class Platform {
+class SDL_Window;
+class SDL_Renderer;
+class SDL_Texture;
+
+class Platform
+{
 public:
-    Platform();
-
+    Platform::Platform(char const *title, int windowWidth, int windowHeight, int textureWidth, int textureHeight);
+    ~Platform();
     void Update(void const* buffer, int pitch);
-
     bool ProcessInput(uint8_t* keys);
     
 private:
@@ -17,5 +19,3 @@ private:
     SDL_Renderer* renderer{};
     SDL_Texture* texture{};
 };
-
-#endif
