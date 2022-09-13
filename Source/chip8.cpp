@@ -1,5 +1,6 @@
-#include "chip8.h"
+#include "chip8.hpp"
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <chrono>
 #include <random>
@@ -9,124 +10,37 @@
 // ...things? Maybe instruction & location?
 // What does the & operator do? Bitwise comparison maybe?
 
-class Chip8
-{
-public:
-    // Is this everything required for a basic CPU to process?
-
-    // CPU storage (16b),, 0x00 - 0xFF (necessitating only [8 bits])
-    // Information comes to register from memory to be operated on
-    uint8_t registers[16]{};
-    
-    // Memory storage (4kb),, 0x000 - 0xFFF (necessitating [16 bits])
-    // 0x000 - 0x1FF - typically for interpreter
-    // 0x050 - 0x0A0 - required input characters 0 to F
-    // 0x200 - 0xFFF - instructions for ROM
-    uint8_t memory[4096]{};
-
-    // Storage of memory addresses to be operated on
-    uint16_t index{};
-
-    // Holds address of next instruction
-    // Opcode [and//memory?] is addressed as two bytes whereas memory is stored per byte - therefore upon a new...
-    // instruction the pc must increment by two - [meaning of rest of description?]
-    uint16_t pc{};
-
-    // Stack (in form of array) - instruction execution order
-    // Memory addresses stored as new instructions added to stack, but not deleted after operation finished
-    uint16_t stack[16];
-
-    // Stack pointer - Moves up and down depending on instruction assignment & completion
-    uint8_t sp{};
-
-    // Timing (usually when set to nonzero value declining at 60Hz)
-    uint8_t delayTimer{};
-
-    // Sound timing
-    uint8_t soundTimer{};
-
-    // 16 input values of 0-F (mapped to 1-V on keyboard)
-    uint8_t keypad[16]{};
-
-    // 64x32 screen w/ on & off set to 0xFFFFFFFF & 0x00000000
-    // Uses XOR of sprite pixel & display pixel
-    uint32_t video[64 * 32]{};
-
-    // Operation for CPU - e.g. ->
-    // $7522 ([Machine code?])
-    // ADD V5, $22 ([Assembly language?])
-    // registers[5] += 0x22; (C++ emulator)
-    // Add 22 (hex) to register 5
-    uint16_t opcode;
-
 const unsigned int START_ADDRESS = 0x200;
-
-void Chip8::LoadROM(char const* filename)
-{
-    // Open file as stream of binary & move pointer to end
-    // What is the i in ifstream? Ios? Ios::ate?
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-
-    if (file.is_open())
-    {
-        // Get size & allocate buffer to hold information
-        // What is a buffer? streampos? tellg()? Is char used because of similar behavior to int?
-        std::streampos size = file.tellg();
-        char* buffer = new char[size];
-
-        // Go back to beginning of file & fill buffer
-        // What is seekg? ios::beg? Does closing a file change its status in memory?
-        file.seekg(0, std::ios::beg);
-        file.read(buffer, size);
-        file.close();
-
-        // Load ROM contents into memory
-        // Assuming this takes individual instructions from the ROM & copies them
-        // Do the addresses start from 1/0x201? How large can i/size get?
-        for (long i = 0; i < size; ++i)
-        {
-            memory[START_ADDRESS + 1] = buffer[i];
-        }
-
-        // Free the buffer
-        // Does anything else need to be deleted? Why is delete an array?
-        delete[] buffer;
-    }
-}
-
 const unsigned int FONTSET_START_ADDRESS = 0x50;
-
 const unsigned int FONTSET_SIZE = 80;
 
-// What is going on here???
 uint8_t fontset[FONTSET_SIZE] =
-{
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-	0x20, 0x60, 0x20, 0x20, 0x70, // 1
-	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    {
+        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+        0x20, 0x60, 0x20, 0x20, 0x70, // 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+        0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
 // Constructor
-// Syntactically better to place constructor below LoadROM?
 Chip8::Chip8()
     : randGen(std::chrono::system_clock::now().time_since_epoch().count())
 {
     // Initialize [program counter]
     pc = START_ADDRESS;
-    
+
     // Load fonts into memory
     // Why is ++i standard practice over i++?
     for (unsigned int i = 0; i < FONTSET_SIZE; ++i)
@@ -159,7 +73,7 @@ Chip8::Chip8()
     table[0xF] = &Chip8::TableF;
 
     // What is size_t? Why i++ instead of ++i?
-    for (size_t i = 0; i<= 0xE; i++)
+    for (size_t i = 0; i <= 0xE; i++)
     {
         table0[i] = &Chip8::OP_NULL;
         table8[i] = &Chip8::OP_NULL;
@@ -198,30 +112,87 @@ Chip8::Chip8()
     tableF[0x65] = &Chip8::OP_Fx65;
 }
 
-// ... [how to describe this]
+void Chip8::LoadROM(char const *filename)
+{
+    // Open file as stream of binary & move pointer to end
+    // What is the i in ifstream? Ios? Ios::ate?
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
-void Table0()
+    if (file.is_open())
+    {
+        // Get size & allocate buffer to hold information
+        // What is a buffer? streampos? tellg()? Is char used because of similar behavior to int?
+        std::streampos size = file.tellg();
+        char *buffer = new char[size];
+
+        // Go back to beginning of file & fill buffer
+        // What is seekg? ios::beg? Does closing a file change its status in memory?
+        file.seekg(0, std::ios::beg);
+        file.read(buffer, size);
+        file.close();
+
+        // Load ROM contents into memory
+        // Assuming this takes individual instructions from the ROM & copies them
+        // Do the addresses start from 1/0x201? How large can i/size get?
+        for (long i = 0; i < size; ++i)
+        {
+            memory[START_ADDRESS + 1] = buffer[i];
+        }
+
+        // Free the buffer
+        // Does anything else need to be deleted? Why is delete an array?
+        delete[] buffer;
+    }
+}
+
+// Cycle includes: fetching instruction, decoding instruction, executing instruction
+void Chip8::Cycle()
+{
+    // Fetch
+    opcode = (memory[pc] << 8u) | memory[pc + 1];
+
+    // Increment PC before execution
+    pc += 2;
+
+    // Decode & execute
+    ((*this).*(table[(opcode & 0xF000u) >> 12u]))();
+
+    // Decremenet delay timer if set
+    if (delayTimer > 0)
+    {
+        --delayTimer;
+    }
+
+    // Decrement sound timer if set
+    if (soundTimer)
+    {
+        --soundTimer;
+    }
+}
+
+void Chip8::Table0()
 {
     ((*this).*(table0[opcode & 0x000Fu]))();
 }
 
-void Table8()
+void Chip8::Table8()
 {
     ((*this).*(table8[opcode & 0x000Fu]))();
 }
 
-void TableE()
+void Chip8::TableE()
 {
     ((*this).*(tableE[opcode & 0x000Fu]))();
 }
 
-void TableF()
+void Chip8::TableF()
 {
     ((*this).*(tableF[opcode & 0x000Fu]))();
 }
 
 void OP_NULL()
-{}
+{
+}
 
 std::default_random_engine randGen;
 std::uniform_int_distribution<u_int8_t> randByte;
@@ -335,7 +306,8 @@ void Chip8::OP_6xkk()
 
 // ADD Vx, byte
 // Set Vx += kk
-void Chip8::OP_7xkk() {
+void Chip8::OP_7xkk()
+{
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
     uint8_t byte = opcode & 0x00FFu;
 
@@ -530,11 +502,11 @@ void Chip8::OP_Dxyn()
     uint8_t height = opcode & 0x000Fu;
 
     // Wrap if beyond screen boundaries
-    uint8_t xPos = registers[Vx] % VIDEO_WIDTH;
-    uint8_t yPos = registers[Vy] % VIDEO_HEIGHT;
+    uint8_t xPos = registers[Vx] % 64;
+    uint8_t yPos = registers[Vy] % 32;
 
     registers[0xF] = 0;
-    
+
     // for each row in sprite
     for (unsigned int row = 0; row < height; ++row)
     {
@@ -544,7 +516,7 @@ void Chip8::OP_Dxyn()
         for (unsigned int col = 0; col < 8; ++col)
         {
             uint8_t spritePixel = spriteByte & (0x80u >> col);
-            uint32_t* screenPixel = &video[(yPos + row) * VIDEO_WIDTH + (xPos + col)];
+            uint32_t *screenPixel = &video[(yPos + row) * 64 + (xPos + col)];
 
             // Sprite pixel is on
             if (spritePixel)
@@ -569,7 +541,7 @@ void Chip8::OP_Ex9E()
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
 
     uint8_t key = registers[Vx];
-    
+
     if (keypad[key])
     {
         pc += 2;
@@ -683,7 +655,7 @@ void Chip8::OP_Fx15()
 {
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
 
-    delayTimer = registers[Vx];    
+    delayTimer = registers[Vx];
 }
 
 // LD ST, Vx
@@ -769,29 +741,3 @@ Chip8Func table8[0xE + 1];
 Chip8Func tableE[0xE + 1];
 Chip8Func tableF[0x65 + 1];
 
-// Cycle includes: fetching instruction, decoding instruction, executing instruction
-void Chip8::Cycle()
-{
-    // Fetch
-    opcode = (memory[pc] << 8u) | memory[pc + 1];
-
-    // Increment PC before execution
-    pc += 2;
-
-    // Decode & execute
-    ((*this).*(table[(opcode & 0xF000u) >> 12u]))();
-
-    // Decremenet delay timer if set
-    if (delayTimer > 0)
-    {
-        --delayTimer;
-    }
-
-    // Decrement sound timer if set
-    if (soundTimer)
-    {
-        --soundTimer;
-    }
-}
-
-};
