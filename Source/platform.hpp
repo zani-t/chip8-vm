@@ -9,7 +9,7 @@ class SDL_Texture;
 class Platform
 {
 public:
-    Platform::Platform(char const *title, int windowWidth, int windowHeight, int textureWidth, int textureHeight);
+    Platform(char const *title, int windowWidth, int windowHeight, int textureWidth, int textureHeight);
     ~Platform();
     void Update(void const* buffer, int pitch);
     bool ProcessInput(uint8_t* keys);
