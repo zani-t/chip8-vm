@@ -13,8 +13,8 @@ find_package(SDL2 REQUIRED)
 
 add_executable(
     chip8-vm
-    Source/main.cpp
     Source/chip8.cpp
+    Source/main.cpp
     Source/platform.cpp)
 
 target_compile_options(chip8-vm PRIVATE -Wall)

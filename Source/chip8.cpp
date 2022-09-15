@@ -101,8 +101,8 @@ Chip8::Chip8()
         tableF[i] = &Chip8::OP_NULL;
     }
 
-    tableF[0x07] = &Chip8::OP_FxO7;
-    tableF[0x0A] = &Chip8::OP_FxOA;
+    tableF[0x07] = &Chip8::OP_Fx07;
+    tableF[0x0A] = &Chip8::OP_Fx0A;
     tableF[0x15] = &Chip8::OP_Fx15;
     tableF[0x18] = &Chip8::OP_Fx18;
     tableF[0x1E] = &Chip8::OP_Fx1E;
@@ -112,7 +112,7 @@ Chip8::Chip8()
     tableF[0x65] = &Chip8::OP_Fx65;
 }
 
-void Chip8::LoadROM(char const *filename)
+void Chip8::LoadROM(char const* filename)
 {
     // Open file as stream of binary & move pointer to end
     // What is the i in ifstream? Ios? Ios::ate?
@@ -164,7 +164,7 @@ void Chip8::Cycle()
     }
 
     // Decrement sound timer if set
-    if (soundTimer)
+    if (soundTimer > 0)
     {
         --soundTimer;
     }
@@ -193,9 +193,6 @@ void Chip8::TableF()
 void Chip8::OP_NULL()
 {
 }
-
-std::default_random_engine randGen;
-std::uniform_int_distribution<u_int8_t> randByte;
 
 // ***** EMULATOR INSTRUCTIONS *****
 
@@ -275,7 +272,7 @@ void Chip8::OP_4xkk()
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
     uint8_t byte = opcode & 0x00FFu;
 
-    if (registers[Vx] == byte)
+    if (registers[Vx] != byte)
     {
         pc += 2;
     }
@@ -286,9 +283,9 @@ void Chip8::OP_4xkk()
 void Chip8::OP_5xy0()
 {
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
-    uint8_t byte = (opcode & 0x00FFu) >> 4u;
+    uint8_t Vy = (opcode & 0x00FFu) >> 4u;
 
-    if (registers[Vx] == byte)
+    if (registers[Vx] == registers[Vy])
     {
         pc += 2;
     }
@@ -444,7 +441,7 @@ void Chip8::OP_8xyE()
 
     // Save MSB in VF
     // What does 0x08u represent? What is operation >> 7u?
-    registers[0xF] = (registers[Vx] & 0x08u) >> 7u;
+    registers[0xF] = (registers[Vx] & 0x80u) >> 7u;
 
     registers[Vx] <<= 1;
 }
@@ -564,7 +561,7 @@ void Chip8::OP_ExA1()
 
 // LD Vx, DT
 // Set Vx to delay timer value
-void Chip8::OP_FxO7()
+void Chip8::OP_Fx07()
 {
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
 
@@ -575,7 +572,7 @@ void Chip8::OP_FxO7()
 // On key press -> store key value in Vx
 // "Waiting" can be accomplished by decrementing pc by 2 whenever keypad value [specific one...
 // ... or any?] is not detected -> same instruction will run repeatedly
-void Chip8::OP_FxOA()
+void Chip8::OP_Fx0A()
 {
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
 
@@ -732,12 +729,3 @@ void Chip8::OP_Fx65()
         registers[i] = memory[index + i];
     }
 }
-
-// Declare [function template] for opcode instructions + as reference
-typedef void (Chip8::*Chip8Func)();
-Chip8Func table[0xF + 1];
-Chip8Func table0[0xE + 1];
-Chip8Func table8[0xE + 1];
-Chip8Func tableE[0xE + 1];
-Chip8Func tableF[0x65 + 1];
-

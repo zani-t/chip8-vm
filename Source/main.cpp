@@ -1,7 +1,7 @@
-#include <chrono>
-#include <iostream>
 #include "chip8.hpp"
 #include "platform.hpp"
+#include <chrono>
+#include <iostream>
 
 int main(int argc, char** argv)
 {

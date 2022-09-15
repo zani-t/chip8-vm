@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <random>
 
+const unsigned int KEY_COUNT = 16;
+const unsigned int MEMORY_SIZE = 4096;
+const unsigned int REGISTER_COUNT = 16;
+const unsigned int STACK_LEVELS = 16;
 const unsigned int VIDEO_WIDTH = 64;
 const unsigned int VIDEO_HEIGHT = 32;
 
@@ -11,15 +15,15 @@ class Chip8
 public:
     Chip8();
 
-    void LoadROM(char const *filename);
+    void LoadROM(char const* filename);
     void Cycle();
 
     // 16 input values of 0-F (mapped to 1-V on keyboard)
-    uint8_t keypad[16]{};
+    uint8_t keypad[KEY_COUNT]{};
 
     // 64x32 screen w/ on & off set to 0xFFFFFFFF & 0x00000000
     // Uses XOR of sprite pixel & display pixel
-    uint32_t video[64 * 32]{};
+    uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT]{};
 
 private:
     void Table0();
@@ -79,9 +83,9 @@ private:
 
     void OP_ExA1();
 
-    void OP_FxO7();
+    void OP_Fx07();
 
-    void OP_FxOA();
+    void OP_Fx0A();
 
     void OP_Fx15();
 
@@ -99,15 +103,15 @@ private:
 
     // Is this everything required for a basic CPU to process?
 
-    // CPU storage (16b),, 0x00 - 0xFF (necessitating only [8 bits])
-    // Information comes to register from memory to be operated on
-    uint8_t registers[16]{};
-
     // Memory storage (4kb),, 0x000 - 0xFFF (necessitating [16 bits])
     // 0x000 - 0x1FF - typically for interpreter
     // 0x050 - 0x0A0 - required input characters 0 to F
     // 0x200 - 0xFFF - instructions for ROM
-    uint8_t memory[4096]{};
+    uint8_t memory[MEMORY_SIZE]{};
+
+    // CPU storage (16b),, 0x00 - 0xFF (necessitating only [8 bits])
+    // Information comes to register from memory to be operated on
+    uint8_t registers[REGISTER_COUNT]{};
 
     // Storage of memory addresses to be operated on
     uint16_t index{};
@@ -117,29 +121,30 @@ private:
     // instruction the pc must increment by two - [meaning of rest of description?]
     uint16_t pc{};
 
-    // Stack (in form of array) - instruction execution order
-    // Memory addresses stored as new instructions added to stack, but not deleted after operation finished
-    uint16_t stack[16];
-
-    // Stack pointer - Moves up and down depending on instruction assignment & completion
-    uint8_t sp{};
-
     // Timing (usually when set to nonzero value declining at 60Hz)
     uint8_t delayTimer{};
 
     // Sound timing
     uint8_t soundTimer{};
 
+    // Stack (in form of array) - instruction execution order
+    // Memory addresses stored as new instructions added to stack, but not deleted after operation finished
+    uint16_t stack[STACK_LEVELS];
+
+    // Stack pointer - Moves up and down depending on instruction assignment & completion
+    uint8_t sp{};
+
     // Operation for CPU - e.g. ->
     // $7522 ([Machine code?])
     // ADD V5, $22 ([Assembly language?])
     // registers[5] += 0x22; (C++ emulator)
     // Add 22 (hex) to register 5
-    uint16_t opcode;
+    uint16_t opcode{};
 
     std::default_random_engine randGen;
     std::uniform_int_distribution<uint8_t> randByte;
 
+    // Declare [function template] for opcode instructions + as reference
     typedef void (Chip8::*Chip8Func)();
 
     Chip8Func table[0xF + 1];
