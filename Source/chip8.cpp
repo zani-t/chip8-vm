@@ -45,7 +45,7 @@ Chip8::Chip8()
     // Why is ++i standard practice over i++?
     for (unsigned int i = 0; i < FONTSET_SIZE; ++i)
 	{
-		memory[FONTSET_START_ADDRESS + i] = fontset[i];
+		memory[FONTSET_START_ADDRESS + 1] = fontset[i];
 	}
 
     // Initialize random number generator
